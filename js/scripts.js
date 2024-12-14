@@ -24,25 +24,38 @@ for (let i = 0; i < LAYERSAMOUNT; i++){
 const createScene = function () {
     const scene = new BABYLON.Scene(engine);
 
-    const camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 10, 0), scene);
-    camera.setTarget(BABYLON.Vector3.Zero());
-    //camera.attachControl(canvas, true);
-    camera.rotation.y = 0;
-    camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-    camera.orthoTop = FIELDSIZE/2;
-    camera.orthoBottom = -FIELDSIZE/2;
-    camera.orthoRight = FIELDSIZE/2;
-    camera.orthoLeft = -FIELDSIZE/2;
+    scene.topDownCamera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 10, 0), scene);
+    scene.topDownCamera.setTarget(BABYLON.Vector3.Zero());
+    scene.topDownCamera.rotation.y = 0;
+    scene.topDownCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+    scene.topDownCamera.orthoTop = FIELDSIZE/2;
+    scene.topDownCamera.orthoBottom = -FIELDSIZE/2;
+    scene.topDownCamera.orthoRight = FIELDSIZE/2;
+    scene.topDownCamera.orthoLeft = -FIELDSIZE/2;
+
+    scene.arcCamera = new BABYLON.ArcRotateCamera("camera2", 1, 1, 10, BABYLON.Vector3.Zero(), scene);
+    scene.arcCamera.attachControl(scene);
     
-    const light = new BABYLON.DirectionalLight("light", new BABYLON.Vector3(0, -1, 0), scene);
-    light.intensity = 1;
-    light.specular = new BABYLON.Color3(0,0,0);
+    scene.mainlight = new BABYLON.DirectionalLight("light", new BABYLON.Vector3(0, -1, 0), scene);
+    scene.mainlight.intensity = 1;
+    scene.mainlight.specular = new BABYLON.Color3(0,0,0);
 
     sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter: 1, segments: 32}, scene);
     sphere.position.y = 1;
 
     return scene;
 };
+
+const switchCameras = function(camera1, camera2, scene){
+    if (scene.activeCamera == camera1){
+        scene.activeCamera = camera2;
+        camera2.attachControl(scene)
+    } else {
+        scene.activeCamera = camera1;
+        camera2.detachControl(scene)
+    }
+}
+
 
 const createChessBoard = function(posX, posY, posZ, size, squares, scene) {
     for (let i = 0; i < squares; i++){
@@ -69,7 +82,7 @@ const createTile = function(posX, posY, height){
     if (scene.getMeshByName("tileX"+posX+"Y"+posY+"level"+CURRENTLAYER)){
         return null
     }
-    let tile = BABYLON.MeshBuilder.CreateGround("tileX"+posX+"Y"+posY+"level"+CURRENTLAYER, {width:1, height:1}, scene)
+    let tile = BABYLON.MeshBuilder.CreateBox("tileX"+posX+"Y"+posY+"level"+CURRENTLAYER, {size:1}, scene)
     tile.position.x = posX;
     tile.position.z = posY;
     tile.position.y = height;
@@ -109,11 +122,23 @@ canvas.addEventListener("click", function(event){
     y = Math.floor(y/(CANVASHEIGHT/FIELDSIZE))
     let xTranslated = x - FIELDSIZE/2 + 0.5
     let yTranslated = FIELDSIZE - y - FIELDSIZE/2 - 0.5
-    if (event.altKey){
-        scene.removeMesh(scene.getMeshByName("tileX"+xTranslated+"Y"+yTranslated+"level"+CURRENTLAYER))
-        mapData[CURRENTLAYER][y][x] = 0;
-    } else {
-        createTile(xTranslated,yTranslated, CURRENTLAYER);
-        mapData[CURRENTLAYER][y][x] = PAINTMODE;
+    if (scene.activeCamera == scene.topDownCamera){
+        if (event.altKey){
+            scene.removeMesh(scene.getMeshByName("tileX"+xTranslated+"Y"+yTranslated+"level"+CURRENTLAYER))
+            mapData[CURRENTLAYER][y][x] = 0;
+        } else {
+            createTile(xTranslated,yTranslated, CURRENTLAYER);
+            mapData[CURRENTLAYER][y][x] = PAINTMODE;
+        }
     }
+
+        scene.mainlight.specular = new BABYLON.Color3(0,0,0);
+})
+canvas.addEventListener("keydown", function(event){
+    if (event.key == " "){
+        console.log("Switch mode!")
+        console.log(scene);
+        switchCameras(scene.topDownCamera, scene.arcCamera, scene)
+    }
+
 })
