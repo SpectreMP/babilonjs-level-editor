@@ -20,25 +20,63 @@ for (let i = 0; i < LAYERSAMOUNT; i++){
     }
 
 }
+const setupCameraOrthographic = function(scene, topDownCamera = null){
+    if (topDownCamera == null){
+        topDownCamera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 10, 0), scene);
+    }
+    topDownCamera.setTarget(BABYLON.Vector3.Zero());
+    topDownCamera.rotation.y = 0;
+    topDownCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+    topDownCamera.orthoTop = FIELDSIZE/2;
+    topDownCamera.orthoBottom = -FIELDSIZE/2;
+    topDownCamera.orthoRight = FIELDSIZE/2;
+    topDownCamera.orthoLeft = -FIELDSIZE/2;
+    
+    return topDownCamera;
+}
+
+const setupCameraArc = function(scene, arcCamera = null){
+    if (arcCamera == null){
+        arcCamera = new BABYLON.ArcRotateCamera("camera2", 1, 2, 10, BABYLON.Vector3.Zero(), scene);
+        arcCamera.attachControl(scene);
+    }
+    return arcCamera;
+}
+
+const setupLight = function(scene){
+    let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0.5, 1, -0.5), scene);
+
+    light.intensity = 1;
+    light.specular = new BABYLON.Color3(0,0,0);
+
+    return light;
+}
+
+const lightChangeMode = function(light){
+    if (light.intensity == 1){
+        light.intensity = 0.9;
+        light.specular = new BABYLON.Color3(0.5,0.5,1);
+    } else {
+        light.intensity = 1;
+        light.specular = new BABYLON.Color3(0,0,0);
+    }
+}
+
+const setupSkybox = function(scene){
+    let skybox = BABYLON.MeshBuilder.CreateBox("skybox", {size:1000.0}, scene);
+    let skyboxMaterial = new BABYLON.StandardMaterial("skybox", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/skybox", scene);
+    skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+    skyboxMaterial.diffuseColor = new BABYLON.Color3(0,0,0);
+    skyboxMaterial.specularColor = new BABYLON.Color3(0,0,0);
+    skybox.material = skyboxMaterial;
+
+    return skybox;
+}
 
 const createScene = function () {
     const scene = new BABYLON.Scene(engine);
-
-    scene.topDownCamera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 10, 0), scene);
-    scene.topDownCamera.setTarget(BABYLON.Vector3.Zero());
-    scene.topDownCamera.rotation.y = 0;
-    scene.topDownCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-    scene.topDownCamera.orthoTop = FIELDSIZE/2;
-    scene.topDownCamera.orthoBottom = -FIELDSIZE/2;
-    scene.topDownCamera.orthoRight = FIELDSIZE/2;
-    scene.topDownCamera.orthoLeft = -FIELDSIZE/2;
-
-    scene.arcCamera = new BABYLON.ArcRotateCamera("camera2", 1, 1, 10, BABYLON.Vector3.Zero(), scene);
-    scene.arcCamera.attachControl(scene);
-    
-    scene.mainlight = new BABYLON.DirectionalLight("light", new BABYLON.Vector3(0, -1, 0), scene);
-    scene.mainlight.intensity = 1;
-    scene.mainlight.specular = new BABYLON.Color3(0,0,0);
 
     sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter: 1, segments: 32}, scene);
     sphere.position.y = 1;
@@ -112,7 +150,13 @@ window.addEventListener("resize", function () {
 });
 
 const scene = createScene(); 
+const topDownCamera = setupCameraOrthographic(scene);
+const arcCamera = setupCameraArc(scene);
+const light = setupLight(scene);
+const skybox = setupSkybox(scene);
+
 console.log(scene)
+
 //createChessBoard(0, -20, 0, 1, FIELDSIZE, scene);
 
 canvas.addEventListener("click", function(event){
@@ -122,7 +166,7 @@ canvas.addEventListener("click", function(event){
     y = Math.floor(y/(CANVASHEIGHT/FIELDSIZE))
     let xTranslated = x - FIELDSIZE/2 + 0.5
     let yTranslated = FIELDSIZE - y - FIELDSIZE/2 - 0.5
-    if (scene.activeCamera == scene.topDownCamera){
+    if (scene.activeCamera == topDownCamera){
         if (event.altKey){
             scene.removeMesh(scene.getMeshByName("tileX"+xTranslated+"Y"+yTranslated+"level"+CURRENTLAYER))
             mapData[CURRENTLAYER][y][x] = 0;
@@ -131,14 +175,11 @@ canvas.addEventListener("click", function(event){
             mapData[CURRENTLAYER][y][x] = PAINTMODE;
         }
     }
-
-        scene.mainlight.specular = new BABYLON.Color3(0,0,0);
 })
 canvas.addEventListener("keydown", function(event){
     if (event.key == " "){
-        console.log("Switch mode!")
-        console.log(scene);
-        switchCameras(scene.topDownCamera, scene.arcCamera, scene)
+        switchCameras(topDownCamera, arcCamera, scene);
+        lightChangeMode(light);
     }
 
 })
