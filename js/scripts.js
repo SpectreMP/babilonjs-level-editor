@@ -163,9 +163,6 @@ const initializePlayer = function(startX, startY, startHeight, scene){
     player.position.y = startHeight;
     player.position.x = startX + 0.5;
     player.position.z = startY - 0.5;
-    player.positionDestination.y = startHeight;
-    player.positionDestination.x = startX + 0.5;
-    player.positionDestination.z = startY - 0.5;
     
     return player;
 }
