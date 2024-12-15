@@ -13,6 +13,8 @@ var PAINTMODE = 1;
 var MATERIALSLIST = [];
 var CURRENTLAYER = 0;
 
+var WINCONDITION = false;
+
 var MAPDATA = new Array(LAYERSAMOUNT)
 for (let i = 0; i < LAYERSAMOUNT; i++){
     MAPDATA[i] = new Array(FIELDSIZE);
@@ -127,14 +129,6 @@ const createTile = function(posX, posY, height, materialNumber, scene){
     if (MAPDATA[CURRENTLAYER][posY][posX] == materialNumber){
         return null;
     }
-    if (materialNumber == 4){
-        initializeExit(posX, FIELDSIZE - posY, height+1, scene);
-        return null;
-    }
-    if (materialNumber == 5){
-        initializePlayer(posX, FIELDSIZE - posY, height+1, scene);
-        return null;
-    }
     if (materialNumber == 0){
         MAPDATA[CURRENTLAYER][posY][posX] = materialNumber;
         scene.removeMesh(scene.getMeshByName("tileX"+posX+"Y"+posY+"level"+CURRENTLAYER))
@@ -142,6 +136,32 @@ const createTile = function(posX, posY, height, materialNumber, scene){
     } else {
         if (MAPDATA[CURRENTLAYER][posY][posX] != materialNumber){
             createTile(posX, posY, height, 0, scene);
+        }
+        if (materialNumber == 4){
+            for (let i = 0; i < LAYERSAMOUNT; i++){
+                for (let j = 0; j < FIELDSIZE; j++){
+                    for (let k = 0; k < FIELDSIZE; k++){
+                        if (MAPDATA[i][j][k] == materialNumber){
+                            MAPDATA[i][j][k] = 0;
+                        }
+                    }
+                }
+            }
+            MAPDATA[CURRENTLAYER][posY][posX] = materialNumber;
+            return initializeExit(posX, FIELDSIZE - posY, height, scene);
+        }
+        if (materialNumber == 5){
+            for (let i = 0; i < LAYERSAMOUNT; i++){
+                for (let j = 0; j < FIELDSIZE; j++){
+                    for (let k = 0; k < FIELDSIZE; k++){
+                        if (MAPDATA[i][j][k] == materialNumber){
+                            MAPDATA[i][j][k] = 0;
+                        }
+                    }
+                }
+            }
+            MAPDATA[CURRENTLAYER][posY][posX] = materialNumber;
+            return initializePlayer(posX, FIELDSIZE - posY, height, scene);
         }
         MAPDATA[CURRENTLAYER][posY][posX] = materialNumber;
         let tile = BABYLON.MeshBuilder.CreateBox("tileX"+posX+"Y"+posY+"level"+CURRENTLAYER, {size:1}, scene)
@@ -156,19 +176,19 @@ const createTile = function(posX, posY, height, materialNumber, scene){
 }
 
 const initializePlayer = function(startX, startY, startHeight, scene){
-    let player = scene.getMeshByName("player")
     if (player == null){
         player = BABYLON.MeshBuilder.CreateSphere("player", {diameter: 1, segments: 32}, scene);
     }
     player.position.y = startHeight;
     player.position.x = startX + 0.5;
     player.position.z = startY - 0.5;
+
+    player.destination = {position:{x:startX+0.5, y:startHeight, z:startY-0.5}};
     
     return player;
 }
 
 const initializeExit = function(startX, startY, startHeight, scene){
-    let exit = scene.getMeshByName("exit")
     if (exit == null){
         exit = BABYLON.MeshBuilder.CreateBox("exit", {size: 0.6, segments: 32}, scene);
     }
@@ -192,6 +212,9 @@ const moveTarget = function(target, horizontalDistance, verticalDistance){
 
 const stepForward = function(){
     player.movePOV(1, 0, 0);
+    if (player.position.x == exit.position.x & player.position.y == exit.position.y & player.position.z == exit.position.z){
+        WINCONDITION = true;
+    }
 }
 
 const turnRight = function(){
@@ -208,16 +231,20 @@ const topDownCamera = setupCameraOrthographic(scene);
 const arcCamera = setupCameraArc(scene);
 const light = setupLight(scene);
 const skybox = setupSkybox(scene);
-const player = initializePlayer(7,7,1,scene);
-const exit = initializeExit(8, 7, 1, scene);
+var player = null;
+var exit = null;
 initializeMaterials(scene);
 
 engine.runRenderLoop(function () {
-    player.position.y += Math.sin(delta*0.05)*0.01;
+    //player.position.y += Math.sin(delta*0.05)*0.01;
     if (exit){
         exit.rotation.y = delta * 0.006;
         exit.rotation.x = delta * 0.007;
         exit.rotation.z = delta * 0.008;
+    }
+
+    if (WINCONDITION){
+        document.querySelector(".completion-popup").classList.remove("hidden");
     }
     delta += 1;
     scene.render();
