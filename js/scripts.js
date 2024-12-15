@@ -44,7 +44,7 @@ const setupCameraArc = function(scene, arcCamera = null){
 }
 
 const setupLight = function(scene){
-    let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0.5, 1, -0.5), scene);
+    let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0.35, 1, -0.55), scene);
 
     light.intensity = 1;
     light.specular = new BABYLON.Color3(0,0,0);
@@ -55,7 +55,7 @@ const setupLight = function(scene){
 const lightChangeMode = function(light){
     if (light.intensity == 1){
         light.intensity = 0.9;
-        light.specular = new BABYLON.Color3(0.5,0.5,1);
+        light.specular = new BABYLON.Color3(1.0, 0.9, 0.8);
     } else {
         light.intensity = 1;
         light.specular = new BABYLON.Color3(0,0,0);
