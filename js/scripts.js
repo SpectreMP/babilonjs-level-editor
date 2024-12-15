@@ -6,25 +6,57 @@ var delta = 0;
 const CANVASHEIGHT = 768;
 const CANVASWIDTH = 768;
 
-const FIELDSIZE = 16;
-const LAYERSAMOUNT = 5;
+var FIELDSIZE = 16;
+var LAYERSAMOUNT = 5;
 
 var PAINTMODE = 1;
+var MATERIALSLIST = [];
 var CURRENTLAYER = 0;
 
-var mapData = new Array(LAYERSAMOUNT)
+var MAPDATA = new Array(LAYERSAMOUNT)
 for (let i = 0; i < LAYERSAMOUNT; i++){
-    mapData[i] = new Array(FIELDSIZE);
+    MAPDATA[i] = new Array(FIELDSIZE);
     for (let j = 0; j < FIELDSIZE; j++){
-        mapData[i][j] = new Array(FIELDSIZE).fill(0);
+        MAPDATA[i][j] = new Array(FIELDSIZE).fill(0);
     }
-
 }
+
+const initializeMaterials = function(scene){
+    //Eraser material
+    MATERIALSLIST = [null];
+
+    //Green material
+    let material = new BABYLON.StandardMaterial(scene)
+    material.alpha = 1;
+    material.diffuseColor = new BABYLON.Color3.Green;
+    MATERIALSLIST.push(material);
+
+    //Red material
+    material = new BABYLON.StandardMaterial(scene)
+    material.alpha = 1;
+    material.diffuseColor = new BABYLON.Color3.Red;
+    MATERIALSLIST.push(material);
+
+    //Blue material
+    material = new BABYLON.StandardMaterial(scene)
+    material.alpha = 1;
+    material.diffuseColor = new BABYLON.Color3.Blue;
+    MATERIALSLIST.push(material);
+
+    //Point of exit
+    MATERIALSLIST.push(null);
+
+    //Player starting point
+    MATERIALSLIST.push(null);
+
+    return MATERIALSLIST;
+}
+
 const setupCameraOrthographic = function(scene, topDownCamera = null){
     if (topDownCamera == null){
-        topDownCamera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 10, 0), scene);
+        topDownCamera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(FIELDSIZE/2, 40, FIELDSIZE/2), scene);
     }
-    topDownCamera.setTarget(BABYLON.Vector3.Zero());
+    topDownCamera.setTarget(new BABYLON.Vector3(FIELDSIZE/2, 0.0, FIELDSIZE/2));
     topDownCamera.rotation.y = 0;
     topDownCamera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
     topDownCamera.orthoTop = FIELDSIZE/2;
@@ -37,8 +69,7 @@ const setupCameraOrthographic = function(scene, topDownCamera = null){
 
 const setupCameraArc = function(scene, arcCamera = null){
     if (arcCamera == null){
-        arcCamera = new BABYLON.ArcRotateCamera("camera2", 1, 2, 10, BABYLON.Vector3.Zero(), scene);
-        arcCamera.attachControl(scene);
+        arcCamera = new BABYLON.ArcRotateCamera("camera2", -2, 1.4, 20, new BABYLON.Vector3(FIELDSIZE/2, 0.0, FIELDSIZE/2), scene);
     }
     return arcCamera;
 }
@@ -78,8 +109,6 @@ const setupSkybox = function(scene){
 const createScene = function () {
     const scene = new BABYLON.Scene(engine);
 
-    sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter: 1, segments: 32}, scene);
-    sphere.position.y = 1;
 
     return scene;
 };
@@ -94,44 +123,69 @@ const switchCameras = function(camera1, camera2, scene){
     }
 }
 
-
-const createChessBoard = function(posX, posY, posZ, size, squares, scene) {
-    for (let i = 0; i < squares; i++){
-        for (let j = 0; j < squares; j++){
-            let square = BABYLON.MeshBuilder.CreateGround("chess"+i+j, {width:size, height:size}, scene)
-            let material = new BABYLON.StandardMaterial(scene);
-            material.alpha = 1;
-
-            if ((i+j)%2==0){
-                material.diffuseColor = new BABYLON.Color3.White;
-            } else {
-                material.diffuseColor = new BABYLON.Color3.Gray;
-            }
-            square.position.x = (i-squares/2+0.5)*size + posX;
-            square.position.y = posY;
-            square.position.z = (j-squares/2+0.5)*size + posZ;
-
-            square.material = material;
-        }
+const createTile = function(posX, posY, height, materialNumber, scene){
+    if (MAPDATA[CURRENTLAYER][posY][posX] == materialNumber){
+        return null;
     }
+    if (materialNumber == 4){
+        initializeExit(posX, FIELDSIZE - posY, height+1, scene);
+        return null;
+    }
+    if (materialNumber == 5){
+        initializePlayer(posX, FIELDSIZE - posY, height+1, scene);
+        return null;
+    }
+    if (materialNumber == 0){
+        MAPDATA[CURRENTLAYER][posY][posX] = materialNumber;
+        scene.removeMesh(scene.getMeshByName("tileX"+posX+"Y"+posY+"level"+CURRENTLAYER))
+        return null;
+    } else {
+        if (MAPDATA[CURRENTLAYER][posY][posX] != materialNumber){
+            createTile(posX, posY, height, 0, scene);
+        }
+        MAPDATA[CURRENTLAYER][posY][posX] = materialNumber;
+        let tile = BABYLON.MeshBuilder.CreateBox("tileX"+posX+"Y"+posY+"level"+CURRENTLAYER, {size:1}, scene)
+        tile.position.x = posX+0.5;
+        tile.position.z = FIELDSIZE - posY-0.5;
+        tile.position.y = height;
+
+        tile.material = MATERIALSLIST[materialNumber];
+        return tile;
+    }
+
 }
 
-const createTile = function(posX, posY, height){
-    if (scene.getMeshByName("tileX"+posX+"Y"+posY+"level"+CURRENTLAYER)){
-        return null
+const initializePlayer = function(startX, startY, startHeight, scene){
+    let player = scene.getMeshByName("player")
+    if (player == null){
+        player = BABYLON.MeshBuilder.CreateSphere("player", {diameter: 1, segments: 32}, scene);
     }
-    let tile = BABYLON.MeshBuilder.CreateBox("tileX"+posX+"Y"+posY+"level"+CURRENTLAYER, {size:1}, scene)
-    tile.position.x = posX;
-    tile.position.z = posY;
-    tile.position.y = height;
+    player.position.y = startHeight;
+    player.position.x = startX + 0.5;
+    player.position.z = startY - 0.5;
+    player.positionDestination.y = startHeight;
+    player.positionDestination.x = startX + 0.5;
+    player.positionDestination.z = startY - 0.5;
+    
+    return player;
+}
+
+const initializeExit = function(startX, startY, startHeight, scene){
+    let exit = scene.getMeshByName("exit")
+    if (exit == null){
+        exit = BABYLON.MeshBuilder.CreateBox("exit", {size: 0.6, segments: 32}, scene);
+    }
 
     let material = new BABYLON.StandardMaterial(scene);
-    material.alpha = 1;
-    material.diffuseColor = new BABYLON.Color3(Math.min(1, posX/FIELDSIZE + 0.5), Math.min(1, posY/FIELDSIZE + 0.5), Math.min(1, height/LAYERSAMOUNT))
+    material.alpha = 0.7;
+    material.diffuseColor = new BABYLON.Color3.Red;
+    exit.material = material;
 
-    tile.material = material;
-
-    return tile;
+    exit.position.y = startHeight;
+    exit.position.x = startX + 0.5;
+    exit.position.z = startY - 0.5;
+    
+    return exit;
 }
 
 const moveTarget = function(target, horizontalDistance, verticalDistance){
@@ -139,8 +193,35 @@ const moveTarget = function(target, horizontalDistance, verticalDistance){
     target.position.z += verticalDistance;
 }
 
+const stepForward = function(){
+    player.movePOV(1, 0, 0);
+}
+
+const turnRight = function(){
+    player.rotatePOV(0, Math.PI/2, 0);
+}
+
+const turnLeft = function(){
+    player.rotatePOV(0, -Math.PI/2, 0);
+}
+
+
+const scene = createScene(); 
+const topDownCamera = setupCameraOrthographic(scene);
+const arcCamera = setupCameraArc(scene);
+const light = setupLight(scene);
+const skybox = setupSkybox(scene);
+const player = initializePlayer(7,7,1,scene);
+const exit = initializeExit(8, 7, 1, scene);
+initializeMaterials(scene);
+
 engine.runRenderLoop(function () {
-    sphere.position.y = 1 + Math.sin(delta*0.05)*0.2;
+    player.position.y += Math.sin(delta*0.05)*0.01;
+    if (exit){
+        exit.rotation.y = delta * 0.006;
+        exit.rotation.x = delta * 0.007;
+        exit.rotation.z = delta * 0.008;
+    }
     delta += 1;
     scene.render();
 });
@@ -149,30 +230,20 @@ window.addEventListener("resize", function () {
     engine.resize();
 });
 
-const scene = createScene(); 
-const topDownCamera = setupCameraOrthographic(scene);
-const arcCamera = setupCameraArc(scene);
-const light = setupLight(scene);
-const skybox = setupSkybox(scene);
 
 console.log(scene)
-
-//createChessBoard(0, -20, 0, 1, FIELDSIZE, scene);
 
 canvas.addEventListener("click", function(event){
     let x = event.x;
     let y = event.y;
     x = Math.floor(x/(CANVASHEIGHT/FIELDSIZE))
     y = Math.floor(y/(CANVASHEIGHT/FIELDSIZE))
-    let xTranslated = x - FIELDSIZE/2 + 0.5
-    let yTranslated = FIELDSIZE - y - FIELDSIZE/2 - 0.5
     if (scene.activeCamera == topDownCamera){
         if (event.altKey){
-            scene.removeMesh(scene.getMeshByName("tileX"+xTranslated+"Y"+yTranslated+"level"+CURRENTLAYER))
-            mapData[CURRENTLAYER][y][x] = 0;
+            createTile(x,y, CURRENTLAYER, 0, scene);
         } else {
-            createTile(xTranslated,yTranslated, CURRENTLAYER);
-            mapData[CURRENTLAYER][y][x] = PAINTMODE;
+            createTile(x,y, CURRENTLAYER, PAINTMODE, scene);
+            
         }
     }
 })
