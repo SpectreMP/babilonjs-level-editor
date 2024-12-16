@@ -14,6 +14,29 @@
             <p>Поздравляем с завершением!</p>
             <img src="textures/button.png" alt="">
         </div>
+        <div class="interface">
+            <div class="material-selection">
+                <label for="Material">Choose Material:</label>
+                <select id="Material" name="Material" onchange="reloadParams()">
+                    <option value="0">Eraser</option>
+                    <option value="1">Green block</option>
+                    <option value="2">Red block</option>
+                    <option value="3">Blue block</option>
+                    <option value="4">Exit point</option>
+                    <option value="5">Entry point</option>
+                </select>
+            </div>
+            <div class="layer-selection">
+                <label for="Layer">Choose Layer:</label>
+                <select id="Layer" name="layer" onchange="reloadParams()">
+                    <option value="0">1</option>
+                    <option value="1">2</option>
+                    <option value="2">3</option>
+                    <option value="3">4</option>
+                    <option value="4">5</option>
+                </select>
+            </div>
+        </div>
         <script src="js/scripts.js"></script>
         
    </body>

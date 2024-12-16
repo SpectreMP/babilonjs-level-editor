@@ -53,3 +53,17 @@ html, body {
     font-size: 24px;
     font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+
+.interface {
+    background: indigo;
+    padding: 30px;
+    color: white;
+    width: 708px;
+    font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-size: 24px;
+}
+.interface select {
+    height: 32px;
+    margin: 10px;
+}
+
