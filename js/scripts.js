@@ -31,8 +31,8 @@ for (let i = 0; i < LAYERSAMOUNT; i++){
 }
 
 const reloadParams = function(){
-    PAINTMODE = materialButton.value;
-    CURRENTLAYER = layerButton.value;
+    PAINTMODE = Number(materialButton.value);
+    CURRENTLAYER = Number(layerButton.value);
 }
 
 const initializeMaterials = function(scene){
