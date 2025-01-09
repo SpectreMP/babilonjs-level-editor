@@ -8,7 +8,7 @@ var delta = 0;
 const CANVASHEIGHT = 768;
 const CANVASWIDTH = 768;
 
-var FIELDSIZE = 20;
+var FIELDSIZE = 16;
 var LAYERSAMOUNT = 5;
 
 var PAINTMODE = 1;
